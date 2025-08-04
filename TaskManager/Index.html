@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Task Manager</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+</head>
+<body class="bg-light">
+
+  <!-- Alerts outside the main container -->
+  <div id="alertPlaceholder" class="position-fixed bottom-0 start-50 translate-middle-x mt-3 z-3" style="width: 90%; max-width: 600px;"></div>
+
+  <div class="container mt-5">
+    <div class="card shadow">
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Task Manager</h4>
+        <span id="taskCount" class="badge bg-light text-dark">Tasks: 0</span>
+      </div>
+      <div class="card-body">
+
+        <div class="input-group mb-3">
+          <input type="text" id="taskInput" class="form-control" placeholder="Enter a new task" />
+          <button id="addTaskBtn" class="btn btn-success">Add Task</button>
+        </div>
+
+        <ul id="taskList" class="list-group"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const taskInput = document.getElementById("taskInput");
+    const addTaskBtn = document.getElementById("addTaskBtn");
+    const taskList = document.getElementById("taskList");
+    const taskCount = document.getElementById("taskCount");
+    const alertPlaceholder = document.getElementById("alertPlaceholder");
+
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+    function updateTaskCount() {
+      taskCount.textContent = `Tasks: ${tasks.length}`;
+    }
+
+    function showAlert(message, type = "success") {
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>`;
+      alertPlaceholder.append(wrapper);
+      setTimeout(() => wrapper.remove(), 5000);
+    }
+
+    function saveTasksToStorage() {
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+
+    function createTaskElement(taskText, completed = false, index) {
+      const li = document.createElement("li");
+      li.className = `list-group-item d-flex justify-content-between align-items-center`;
+
+      const leftDiv = document.createElement("div");
+      leftDiv.className = "d-flex align-items-center";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "form-check-input me-2";
+      checkbox.checked = completed;
+
+      const taskSpan = document.createElement("span");
+      taskSpan.textContent = taskText;
+      if (completed) {
+        taskSpan.classList.add("text-decoration-line-through", "text-muted");
+      }
+
+      checkbox.addEventListener("change", () => {
+        tasks[index].completed = checkbox.checked;
+        renderTasks();
+        saveTasksToStorage();
+      });
+
+      leftDiv.appendChild(checkbox);
+      leftDiv.appendChild(taskSpan);
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "btn btn-sm btn-danger";
+      deleteBtn.textContent = "Delete";
+      deleteBtn.addEventListener("click", () => {
+        tasks.splice(index, 1);
+        renderTasks();
+        saveTasksToStorage();
+        showAlert("Task deleted", "danger");
+      });
+
+      li.appendChild(leftDiv);
+      li.appendChild(deleteBtn);
+      return li;
+    }
+
+    function renderTasks() {
+      taskList.innerHTML = "";
+      tasks.forEach((task, index) => {
+        const taskItem = createTaskElement(task.text, task.completed, index);
+        taskList.appendChild(taskItem);
+      });
+      updateTaskCount();
+    }
+
+    addTaskBtn.addEventListener("click", () => {
+      const taskText = taskInput.value.trim();
+      if (taskText === "") {
+        showAlert("Task cannot be empty", "warning");
+        return;
+      }
+      tasks.push({ text: taskText, completed: false });
+      renderTasks();
+      saveTasksToStorage();
+      showAlert("Task added successfully");
+      taskInput.value = "";
+      taskInput.focus();
+    });
+
+    taskInput.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") addTaskBtn.click();
+    });
+
+    renderTasks();
+  </script>
+</body>
+</html>
